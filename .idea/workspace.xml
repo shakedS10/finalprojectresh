@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="60bd81f6-759d-43e0-b495-25307c5faeff" name="Changes" comment="">
+    <list default="true" id="60bd81f6-759d-43e0-b495-25307c5faeff" name="Changes" comment="dsdsd">
       <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
@@ -69,12 +69,25 @@
       <option name="presentableId" value="Default" />
       <updated>1715942992605</updated>
       <workItem from="1715943004984" duration="3074000" />
-      <workItem from="1716144404177" duration="5306000" />
+      <workItem from="1716144404177" duration="5675000" />
     </task>
+    <task id="LOCAL-00001" summary="dsdsd">
+      <option name="closed" value="true" />
+      <created>1716197469749</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1716197469749</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="dsdsd" />
+    <option name="LAST_COMMIT_MESSAGE" value="dsdsd" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/finalprojectliorshulman$server.coverage" NAME="server Coverage Results" MODIFIED="1716148983433" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
