@@ -1,5 +1,5 @@
 #//////////////////////////////////////
-#client.py
+#sender.py
 
 import socket
 import api

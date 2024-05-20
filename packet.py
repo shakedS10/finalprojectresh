@@ -1,27 +1,26 @@
-class quicheader:
-    def __init__(self, flags, id , num):
+class LongHeader:
+    def __init__(self, con_id, t):
+        self.con_id = con_id
+        self.t = t  #0-ACK, 1-SYN 2-TERMINATE
+
+    def encode(self):
+        return self.con_id + ":" + self.t
+
+    def decode(self, data):
+        self.con_id, self.t = data.split(":")
+        return self
+
+
+class ShortHeader:
+    def __init__(self, flags, con_id, seq, data):
         self.flags = flags
-        self.id = id
-        self.num = num
-
-#
-class quicdata:
-    def __init__(self, data , streamid , datalen):
-        self.data = data
-        self.streamid = streamid
-        self.datalen = datalen
-
-
-class quicpacket:
-    def __init__(self, header, data):
-        self.header = header
+        self.con_id = con_id
+        self.seq = seq
         self.data = data
 
     def encode(self):
-        return f"{self.connection_id}|{self.packet_number}|{self.payload}".encode()
+        return self.flags + ":" + self.con_id + ":" + self.seq + ":" + self.data
 
-    @staticmethod
-    def decode(data):
-        parts = data.decode().split("|")
-        return quicpacket(parts[0], int(parts[1]), parts[2])
-
+    def decode(self, data):
+        self.flags, self.con_id, self.seq, self.data = data.split(":")
+        return self
