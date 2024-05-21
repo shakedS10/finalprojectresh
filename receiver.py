@@ -31,16 +31,18 @@ def handle_syn(packet_data, sock, host, port):
     pac.decode(packet_data)
     if pac.t == '2':
         print(f"Received TERMINATE for Connection {pac.con_id}")
-        handle_term(pac.con_id)
+        return handle_term(pac.con_id)
+
     print(f"Received SYN for Connection {pac.con_id}")
     expected_frames[pac.con_id] = 0
     active_connections.add(pac.con_id)
     send_ack(sock, host, port, pac.con_id)
 
+
 def handle_term(con_id):
-    active_connections.remove(con_id)
     terminate_flag.set()
     return TERMINATE_MSG
+
 
 # Function to handle data packet
 def handle_data(packet_data, sock, host, port):
@@ -95,6 +97,7 @@ def handle_stream(sock, host, port):
                 handle_data(data.decode(), sock, addr[0], addr[1])
         except socket.timeout:
             print("Socket timeout.")
+            break
 
 
 # Function to start the receiver
@@ -104,18 +107,7 @@ def start_receiver(host, port):
     sock.settimeout(5.0)  # Add a timeout to handle termination gracefully
     print(f"Receiver started on {host}:{port}")
 
-    # Start separate threads for handling multiple streams
-    threads = []
-    for _ in range(4):  # Assuming there are 4 streams
-        thread = threading.Thread(target=handle_stream, args=(sock, host, port))
-        thread.start()
-        threads.append(thread)
-
-    try:
-        for thread in threads:
-            thread.join()
-    except KeyboardInterrupt:
-        print("Keyboard Interrupt. Exiting...")
+    handle_stream(sock, host, port)
 
     print_stats()
     save_received_data()
@@ -126,3 +118,4 @@ def start_receiver(host, port):
 if __name__ == "__main__":
     # Start the receiver
     start_receiver('127.0.0.1', 9999)
+
