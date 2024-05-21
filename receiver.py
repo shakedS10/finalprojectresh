@@ -1,3 +1,4 @@
+import argparse
 import socket
 import threading
 import os
@@ -32,7 +33,6 @@ def handle_syn(packet_data, sock, host, port):
     if pac.t == '2':
         print(f"Received TERMINATE for Connection {pac.con_id}")
         return handle_term(pac.con_id)
-
     print(f"Received SYN for Connection {pac.con_id}")
     expected_frames[pac.con_id] = 0
     active_connections.add(pac.con_id)
@@ -82,6 +82,10 @@ def save_received_data():
         with open(filename, 'wb') as f:
             f.write(data)
         print(f"Data for Connection {con_id} saved to {filename}")
+    with open(output, 'wb') as f:
+        for con_id, data in received_data.items():
+            f.write(data)
+        print(f"Data for Connection saved to {output}")
 
 
 # Function to handle each stream separately
@@ -117,5 +121,14 @@ def start_receiver(host, port):
 # Main function to start the receiver
 if __name__ == "__main__":
     # Start the receiver
-    start_receiver('127.0.0.1', 9999)
+    arg_parser = argparse.ArgumentParser(description="A Receiver for QUIC-like packets.")
+    arg_parser.add_argument("-p", "--port", type=int, default=9999, help="The port to listen on.")
+    arg_parser.add_argument("-ip", "--ip", type=str, default="127.0.0.1", help="The host to listen on.")
+    arg_parser.add_argument("-o", "--output", type=str, default="output.txt", help="The output file name.")
+
+    ip = arg_parser.parse_args().ip
+    port = arg_parser.parse_args().port
+    global output
+    output = arg_parser.parse_args().output
+    start_receiver(ip, port)
 

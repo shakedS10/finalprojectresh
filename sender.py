@@ -60,6 +60,7 @@ def start_sender(host, port):
     packet_size2 = random.randint(1000, 2000)
     file_size_limit = 10000
     filename = "random.txt"
+    global filesize
     filesize = random.randint(1000, 10000) * 1000
     create_random_text_file(filename, filesize)
     data = read_file_to_string(filename)
@@ -77,14 +78,19 @@ def start_sender(host, port):
         print("Connection established.")
         print("Connection established.")
         threads = []
-        threads.append(threading.Thread(target=send_data,
-                                        args=(sock, host, port, '1', packet_size1, filesize, data)))
-        threads.append(threading.Thread(target=send_data,
-                                        args=(sock, host, port, '2', packet_size1, filesize, data)))
-        threads.append(threading.Thread(target=send_data,
-                                        args=(sock, host, port, '3', packet_size1, filesize, data)))
-        threads.append(threading.Thread(target=send_data,
-                                        args=(sock, host, port, '4', packet_size1, filesize, data)))
+        dlen = len(data)//tcount
+        for i in range(tcount):
+            threads.append(threading.Thread(target=send_data,
+                                            args=(sock, host, port, str(i+1), packet_size1, dlen, data[i*dlen:(i+1)*dlen])))
+
+        # threads.append(threading.Thread(target=send_data,
+        #                                 args=(sock, host, port, '1', packet_size1, filesize, data)))
+        # threads.append(threading.Thread(target=send_data,
+        #                                 args=(sock, host, port, '2', packet_size1, filesize, data)))
+        # threads.append(threading.Thread(target=send_data,
+        #                                 args=(sock, host, port, '3', packet_size1, filesize, data)))
+        # threads.append(threading.Thread(target=send_data,
+        #                                 args=(sock, host, port, '4', packet_size1, filesize, data)))
 
         # Start all threads
         for thread in threads:
@@ -104,5 +110,17 @@ def start_sender(host, port):
 
 
 if __name__ == "__main__":
-    start_sender('127.0.0.1', 9999)
+    arg_parser = argparse.ArgumentParser(description="A Receiver for QUIC-like packets.")
+    arg_parser.add_argument("-p", "--port", type=int, default=9999, help="The port to listen on.")
+    arg_parser.add_argument("-ip", "--ip", type=str, default="127.0.0.1", help="The host to listen on.")
+    arg_parser.add_argument("-t", "--t", type=int, default="5", help="amount of threads")
+    arg_parser.add_argument("-o", "--output", type=str, default="output.txt", help="The output file name.")
+    ip = arg_parser.parse_args().ip
+    port = arg_parser.parse_args().port
+    global output
+    output = arg_parser.parse_args().output
+    global tcount
+    tcount = arg_parser.parse_args().t
+
+    start_sender(ip, port)
 
