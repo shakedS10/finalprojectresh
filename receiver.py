@@ -1,99 +1,128 @@
 import socket
 import threading
-import time
+import os
 from collections import defaultdict
+import packet  # Assuming the packet module is available and correctly implemented
 
 # Constants
 TERMINATE_MSG = "TERMINATE"
 ACK_DELAY = 0.1  # ACK delay in seconds
+terminate_flag = threading.Event()
+active_connections = set()
+
+# Data structures to track received data and stats
 stats = defaultdict(lambda: {'bytes_received': 0, 'packets_received': 0})
+received_data = defaultdict(lambda: bytearray())
+expected_frames = defaultdict(int)
 
 
-def send_terminate_message(sock, host, port):
-    global terminate_flag
-    terminate_flag = True
-    sock.sendto(TERMINATE_MSG.encode(), (host, port))
-    print("Sent terminate message")
+# Function to send ACK packet
+def send_ack(sock, host, port, con_id):
+    ack_packet = packet.LongHeader('0', con_id, '0')  # ACK packet
+    sock.sendto(ack_packet.encode().encode(), (host, port))
+    print(f"Sent ACK Packet for Connection {con_id}")
 
 
-def send_ack(sock, host, port, stream_id):
-    ack_packet = f"ACK:{stream_id}"
-    sock.sendto(ack_packet.encode(), (host, port))
-    print(f"Sent ACK Packet for Stream {stream_id}")
+# Function to handle SYN packet
+# Function to handle SYN packet
+# Function to handle SYN packet
+def handle_syn(packet_data, sock, host, port):
+    pac = packet.LongHeader(flags='', con_id='', t='')
+    pac.decode(packet_data)
+    if pac.t == '2':
+        print(f"Received TERMINATE for Connection {pac.con_id}")
+        handle_term(pac.con_id)
+    print(f"Received SYN for Connection {pac.con_id}")
+    expected_frames[pac.con_id] = 0
+    active_connections.add(pac.con_id)
+    send_ack(sock, host, port, pac.con_id)
+
+def handle_term(con_id):
+    active_connections.remove(con_id)
+    terminate_flag.set()
+    return TERMINATE_MSG
+
+# Function to handle data packet
+def handle_data(packet_data, sock, host, port):
+    pac = packet.ShortHeader(flags='', con_id='', seq='', data='', filesize='', packet_size='')
+    pac.decode(packet_data)
+    print(f"Received Data Packet for Connection {pac.con_id}, Frame {pac.seq}")
+    update_stats(pac.con_id, len(packet_data))
+    received_data[pac.con_id] += pac.data.encode()
+    expected_frames[pac.con_id] += 1
+
+    # Check if this is the last expected packet
+    if expected_frames[pac.con_id] * pac.packet_size >= pac.filesize:
+        send_ack(sock, host, port, pac.con_id)
 
 
-def handle_long_header(packet, sock, host, port):
-    parts = packet.split(':')
-    if len(parts) >= 2:
-        stream_id_part = parts[1].split('=')
-        if len(stream_id_part) >= 2:
-            stream_id = stream_id_part[1]
-            print(f"Received Long Header for Stream {stream_id}")
-            send_ack(sock, host, port, stream_id)
-            update_stats(stream_id, len(packet))
-        else:
-            print("Malformed stream ID in long header:", parts)
-    else:
-        print("Malformed long header:", packet)
-    print("Received packet:", packet)
-
-
-def handle_short_header(packet, sock, host, port):
-    parts = packet.split(':')
-    stream_id = parts[1]
-    print(f"Received Short Header for Stream {stream_id}")
-    send_ack(sock, host, port, stream_id)
-    update_stats(stream_id, len(packet))
-
-
-def handle_syn_packet(sock, host, port, stream_id):
-    ack_packet = f"ACK:SYN"
-    sock.sendto(ack_packet.encode(), (host, port))
-    print(f"Sent ACK for SYN packet on Stream {stream_id}")
-
-
-def update_stats(stream_id, payload_size):
+# Function to update statistics
+def update_stats(con_id, payload_size):
     global stats
-    stats[stream_id]['bytes_received'] += payload_size
-    stats[stream_id]['packets_received'] += 1
+    stats[con_id]['bytes_received'] += payload_size
+    stats[con_id]['packets_received'] += 1
 
 
+# Function to print statistics
 def print_stats():
     global stats
     print("Receiver Statistics:")
-    for stream_id, data in stats.items():
-        print(f"Stream {stream_id}:")
+    for con_id, data in stats.items():
+        print(f"Connection {con_id}:")
         print(f"  Total Bytes Received: {data['bytes_received']}")
         print(f"  Total Packets Received: {data['packets_received']}")
 
 
+# Function to save received data to files
+def save_received_data():
+    for con_id, data in received_data.items():
+        filename = f"received_{con_id}.txt"
+        with open(filename, 'wb') as f:
+            f.write(data)
+        print(f"Data for Connection {con_id} saved to {filename}")
+
+
+# Function to handle each stream separately
+def handle_stream(sock, host, port):
+    while True:
+        try:
+            data, addr = sock.recvfrom(65535)  # Adjust buffer size here
+            print(data)
+            if data.startswith(b"L"):
+                if handle_syn(data.decode(), sock, addr[0], addr[1]) == TERMINATE_MSG:
+                    break
+            elif data.startswith(b"S"):
+                handle_data(data.decode(), sock, addr[0], addr[1])
+        except socket.timeout:
+            print("Socket timeout.")
+
+
+# Function to start the receiver
 def start_receiver(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((host, port))
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)  # Set receive buffer size
+    sock.settimeout(5.0)  # Add a timeout to handle termination gracefully
     print(f"Receiver started on {host}:{port}")
 
-    while True:
-        try:
-            data, addr = sock.recvfrom(4096)  # Adjust buffer size here
-            packet = data.decode()
-            if packet.startswith("SYN:"):
-                handle_syn_packet(sock, addr[0], addr[1], packet.split('=')[1].split(':')[0])
-            elif packet.startswith("LSYN:"):
-                handle_syn_packet(sock, addr[0], addr[1], packet.split('=')[1].split(':')[0])
-            elif packet.startswith("S"):
-                handle_short_header(packet, sock, addr[0], addr[1])
-            elif packet.startswith("L"):
-                handle_long_header(packet, sock, addr[0], addr[1])
-            elif packet == TERMINATE_MSG:
-                print("Termination signal received. Exiting...")
-                break
-        except socket.timeout:
-            print("Socket timeout.")
+    # Start separate threads for handling multiple streams
+    threads = []
+    for _ in range(4):  # Assuming there are 4 streams
+        thread = threading.Thread(target=handle_stream, args=(sock, host, port))
+        thread.start()
+        threads.append(thread)
+
+    try:
+        for thread in threads:
+            thread.join()
+    except KeyboardInterrupt:
+        print("Keyboard Interrupt. Exiting...")
+
     print_stats()
+    save_received_data()
     sock.close()
 
 
+# Main function to start the receiver
 if __name__ == "__main__":
     # Start the receiver
-    threading.Thread(target=start_receiver, args=('127.0.0.1', 9999)).start()
+    start_receiver('127.0.0.1', 9999)
