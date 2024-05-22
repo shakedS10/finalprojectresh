@@ -3,6 +3,8 @@ import socket
 import os
 import random
 import string
+import time
+
 import packet
 import threading
 
@@ -52,6 +54,7 @@ def send_data(sock, host, port, con_id, packet_size, filesize, data):
         #print(data_packet.encode().encode())
         total_bytes_sent += packet_size
         frame += 1
+        time.sleep(0.01)
 
 
 
@@ -124,4 +127,3 @@ if __name__ == "__main__":
     tcount = arg_parser.parse_args().t
 
     start_sender(ip, port)
-
