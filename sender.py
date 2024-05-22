@@ -40,6 +40,7 @@ def send_data(sock, host, port, con_id, packet_size, filesize, data):
     # Send data packets
     frame = 0
     total_bytes_sent = 0
+    print(f"Sending data from thread {con_id}")
 
     while total_bytes_sent < filesize:
         # Create a data packet
@@ -48,7 +49,7 @@ def send_data(sock, host, port, con_id, packet_size, filesize, data):
                                          filesize, packet_size)
         # Send the data packet
         sock.sendto(data_packet.encode().encode(), (host, port))
-        print(data_packet.encode().encode())
+        #print(data_packet.encode().encode())
         total_bytes_sent += packet_size
         frame += 1
 
@@ -75,7 +76,7 @@ def start_sender(host, port):
     response_packet.decode(response_data.decode())
     print(response_packet.con_id, response_packet.t)
     if response_packet.t == '0':
-        print("Connection established.")
+        #print("Connection established.")
         print("Connection established.")
         threads = []
         dlen = len(data)//tcount
