@@ -43,18 +43,21 @@ def send_data(sock, host, port, con_id, packet_size, filesize, data):
     frame = 0
     total_bytes_sent = 0
     print(f"Sending data from thread {con_id}")
-
     while total_bytes_sent < filesize:
         # Create a data packet
-
         data_packet = packet.ShortHeader(0, con_id, frame, data[frame * packet_size:(frame + 1) * packet_size],
                                          filesize, packet_size)
         # Send the data packet
         sock.sendto(data_packet.encode().encode(), (host, port))
+
+
+
         #print(data_packet.encode().encode())
         total_bytes_sent += packet_size
         frame += 1
-        time.sleep(0.01)
+        time.sleep(delay)
+
+
 
 
 
@@ -87,15 +90,6 @@ def start_sender(host, port):
             threads.append(threading.Thread(target=send_data,
                                             args=(sock, host, port, str(i+1), packet_size1, dlen, data[i*dlen:(i+1)*dlen])))
 
-        # threads.append(threading.Thread(target=send_data,
-        #                                 args=(sock, host, port, '1', packet_size1, filesize, data)))
-        # threads.append(threading.Thread(target=send_data,
-        #                                 args=(sock, host, port, '2', packet_size1, filesize, data)))
-        # threads.append(threading.Thread(target=send_data,
-        #                                 args=(sock, host, port, '3', packet_size1, filesize, data)))
-        # threads.append(threading.Thread(target=send_data,
-        #                                 args=(sock, host, port, '4', packet_size1, filesize, data)))
-
         # Start all threads
         for thread in threads:
             thread.start()
@@ -119,11 +113,14 @@ if __name__ == "__main__":
     arg_parser.add_argument("-ip", "--ip", type=str, default="127.0.0.1", help="The host to listen on.")
     arg_parser.add_argument("-t", "--t", type=int, default="5", help="amount of threads")
     arg_parser.add_argument("-o", "--output", type=str, default="output.txt", help="The output file name.")
+    arg_parser.add_argument("-s", "--sleep", type=float, default=0.01, help="delay for packets")
     ip = arg_parser.parse_args().ip
     port = arg_parser.parse_args().port
     global output
     output = arg_parser.parse_args().output
     global tcount
     tcount = arg_parser.parse_args().t
+    global delay
+    delay = arg_parser.parse_args().sleep
 
     start_sender(ip, port)

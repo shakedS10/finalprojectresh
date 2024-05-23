@@ -46,14 +46,10 @@ def handle_term(con_id):
 def handle_data(packet_data, sock, host, port):
     pac = packet.ShortHeader(flags='', con_id='', seq='', data='', filesize='', packet_size='')
     pac.decode(packet_data)
-    #print(f"Received Data Packet for Connection {pac.con_id}, Frame {pac.seq}")
     update_stats(pac.con_id, len(packet_data))
     received_data[pac.con_id] += pac.data.encode()
     expected_frames[pac.con_id] += 1
 
-    # Check if this is the last expected packet
-    if expected_frames[pac.con_id] * pac.packet_size >= pac.filesize:
-        send_ack(sock, host, port, pac.con_id)
 
 # Function to update statistics
 def update_stats(con_id, payload_size):
@@ -133,7 +129,7 @@ def handle_stream(sock, host, port):
 def start_receiver(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((host, port))
-    sock.settimeout(5.0)  # Add a timeout to handle termination gracefully
+    sock.settimeout(20.0)  # Add a timeout to handle termination gracefully
     print(f"Receiver started on {host}:{port}")
 
     handle_stream(sock, host, port)
