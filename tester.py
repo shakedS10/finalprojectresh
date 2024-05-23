@@ -1,5 +1,7 @@
 import argparse
 import subprocess
+import time
+
 import constants as c
 
 
@@ -17,7 +19,7 @@ def run_test(n):
     # Terminate receiver process after sender finishes
     receiver_process.terminate()
     receiver_process.wait()
-
+    time.sleep(c.testingInterval)
     # Check if output.txt matches random.txt
     with open("random.txt", "r") as f_random, open("output.txt", "r") as f_output:
         random_content = f_random.read()
