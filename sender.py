@@ -4,11 +4,9 @@ import os
 import random
 import string
 import time
-
 import packet
 import threading
-
-totalsize = 1024 * 1024 * 10
+import constants as c
 
 active_connections = {}
 
@@ -21,7 +19,7 @@ def create_random_text_file(filename, size_in_bytes):
     with open(filename, 'w') as f:
         while os.path.getsize(filename) < size_in_bytes:
             # Generate a random string
-            random_text = ''.join(random.choices(chars, k=1024))
+            random_text = ''.join(random.choices(chars, k=c.randomSeed))
             f.write(random_text)
             f.flush()  # Ensure content is written to the file
 
@@ -50,25 +48,16 @@ def send_data(sock, host, port, con_id, packet_size, filesize, data):
         # Send the data packet
         sock.sendto(data_packet.encode().encode(), (host, port))
 
-
-
-        #print(data_packet.encode().encode())
         total_bytes_sent += packet_size
         frame += 1
         time.sleep(delay)
 
 
-
-
-
-
 def start_sender(host, port):
-    packet_size1 = random.randint(1000, 2000)
-    packet_size2 = random.randint(1000, 2000)
-    file_size_limit = 10000
+    packet_size1 = random.randint(c.packetSizeMin, c.packetSizeMax)
     filename = "random.txt"
     global filesize
-    filesize = random.randint(1000, 10000) * 1000
+    filesize = random.randint(c.fileSizeMin, c.fileSizeMax) * c.scaleToMB
     create_random_text_file(filename, filesize)
     data = read_file_to_string(filename)
 
@@ -77,22 +66,23 @@ def start_sender(host, port):
     long_header_packet = packet.LongHeader('0', '-1', '1')  # SYN packet
     sock.sendto(long_header_packet.encode().encode(), (host, port))
 
-    response_data, addr = sock.recvfrom(1024)
+    response_data, addr = sock.recvfrom(c.senderReceivedSize)
     response_packet = packet.LongHeader('', '', '')
     response_packet.decode(response_data.decode())
     print(response_packet.con_id, response_packet.t)
     if response_packet.t == '0':
-        #print("Connection established.")
         print("Connection established.")
         threads = []
-        dlen = len(data)//tcount
+        dlen = len(data) // tcount
         for i in range(tcount):
             threads.append(threading.Thread(target=send_data,
-                                            args=(sock, host, port, str(i+1), packet_size1, dlen, data[i*dlen:(i+1)*dlen])))
+                                            args=(sock, host, port, str(i + 1), packet_size1, dlen,
+                                                  data[i * dlen:(i + 1) * dlen])))
 
         # Start all threads
         for thread in threads:
             thread.start()
+            time.sleep(delay)
 
         # Wait for all threads to finish
         for thread in threads:
@@ -109,11 +99,11 @@ def start_sender(host, port):
 
 if __name__ == "__main__":
     arg_parser = argparse.ArgumentParser(description="A Receiver for QUIC-like packets.")
-    arg_parser.add_argument("-p", "--port", type=int, default=9999, help="The port to listen on.")
-    arg_parser.add_argument("-ip", "--ip", type=str, default="127.0.0.1", help="The host to listen on.")
-    arg_parser.add_argument("-t", "--t", type=int, default="5", help="amount of threads")
+    arg_parser.add_argument("-p", "--port", type=int, default=c.defaultPort, help="The port to listen on.")
+    arg_parser.add_argument("-ip", "--ip", type=str, default=c.defaultIP, help="The host to listen on.")
+    arg_parser.add_argument("-t", "--t", type=int, default=c.defaultStreamNumber, help="amount of threads")
     arg_parser.add_argument("-o", "--output", type=str, default="output.txt", help="The output file name.")
-    arg_parser.add_argument("-s", "--sleep", type=float, default=0.01, help="delay for packets")
+    arg_parser.add_argument("-s", "--sleep", type=float, default=c.defaultDelay, help="delay for packets")
     ip = arg_parser.parse_args().ip
     port = arg_parser.parse_args().port
     global output

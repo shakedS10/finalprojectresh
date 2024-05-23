@@ -1,0 +1,16 @@
+randomSeed = 1024
+packetSizeMin = 1000
+packetSizeMax = 2000
+fileSizeMin = 1000
+fileSizeMax = 10000
+scaleToMB = 1000
+senderReceivedSize = 1024
+receiverReceivedSize = 2048
+defaultIP = "127.0.0.1"
+defaultPort = 9999
+defaultDelay = 0.005
+defaultStreamNumber = 5
+defaultStreamNumberTester = 10
+defaultLoss = 1000
+shortHeaderLen = 6
+defaultTimeout = 20.0

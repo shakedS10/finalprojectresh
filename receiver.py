@@ -3,11 +3,11 @@ import socket
 import threading
 import time
 from collections import defaultdict, deque
-import packet  # Assuming the packet module is available and correctly implemented
+import packet
+import constants as c
 
 # Constants
 TERMINATE_MSG = "TERMINATE"
-ACK_DELAY = 0.1  # ACK delay in seconds
 terminate_flag = threading.Event()
 active_connections = set()
 STATS_INTERVAL = 1  # Time interval in seconds to calculate stats
@@ -20,11 +20,13 @@ expected_frames = defaultdict(int)
 # Queues to store timestamps and sizes of received packets for rate calculations
 received_timestamps = defaultdict(lambda: deque())
 
+
 # Function to send ACK packet
 def send_ack(sock, host, port, con_id):
     ack_packet = packet.LongHeader('0', con_id, '0')  # ACK packet
     sock.sendto(ack_packet.encode().encode(), (host, port))
     print(f"Sent ACK Packet for Connection {con_id}")
+
 
 # Function to handle SYN packet
 def handle_syn(packet_data, sock, host, port):
@@ -38,9 +40,11 @@ def handle_syn(packet_data, sock, host, port):
     active_connections.add(pac.con_id)
     send_ack(sock, host, port, pac.con_id)
 
+
 def handle_term(con_id):
     terminate_flag.set()
     return TERMINATE_MSG
+
 
 # Function to handle data packet
 def handle_data(packet_data, sock, host, port):
@@ -59,6 +63,7 @@ def update_stats(con_id, payload_size):
     stats[con_id]['packets_received'] += 1
     received_timestamps[con_id].append((current_time, payload_size))
 
+
 # Function to calculate rates
 def calculate_rates():
     current_time = time.time()
@@ -71,8 +76,9 @@ def calculate_rates():
         if timestamps:
             total_bytes = sum(size for _, size in timestamps)
             total_packets = len(timestamps)
-            stats[con_id]['bytes_per_sec'] = total_bytes / STATS_INTERVAL
-            stats[con_id]['packets_per_sec'] = total_packets / STATS_INTERVAL
+            stats[con_id]['bytes_per_sec'] = int(total_bytes / STATS_INTERVAL)
+            stats[con_id]['packets_per_sec'] = int(total_packets / STATS_INTERVAL)
+
 
 # Function to print statistics
 def print_stats():
@@ -98,6 +104,7 @@ def print_stats():
     print(f"  Bytes per Second: {total_bytes_per_sec:.2f}")
     print(f"  Packets per Second: {total_packets_per_sec:.2f}")
 
+
 # Function to save received data to files
 def save_received_data():
     for con_id, data in received_data.items():
@@ -110,12 +117,12 @@ def save_received_data():
             f.write(data)
         print(f"Data for Connection saved to {output}")
 
+
 # Function to handle each stream separately
 def handle_stream(sock, host, port):
     while True:
         try:
-            data, addr = sock.recvfrom(65535)  # Adjust buffer size here
-            #print(data)
+            data, addr = sock.recvfrom(c.receiverReceivedSize)  # Adjust buffer size here
             if data.startswith(b"L"):
                 if handle_syn(data.decode(), sock, addr[0], addr[1]) == TERMINATE_MSG:
                     break
@@ -125,11 +132,12 @@ def handle_stream(sock, host, port):
             print("Socket timeout.")
             break
 
+
 # Function to start the receiver
 def start_receiver(host, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((host, port))
-    sock.settimeout(20.0)  # Add a timeout to handle termination gracefully
+    sock.settimeout(c.defaultTimeout)
     print(f"Receiver started on {host}:{port}")
 
     handle_stream(sock, host, port)
@@ -138,12 +146,13 @@ def start_receiver(host, port):
     save_received_data()
     sock.close()
 
+
 # Main function to start the receiver
 if __name__ == "__main__":
     # Start the receiver
     arg_parser = argparse.ArgumentParser(description="A Receiver for QUIC-like packets.")
-    arg_parser.add_argument("-p", "--port", type=int, default=9999, help="The port to listen on.")
-    arg_parser.add_argument("-ip", "--ip", type=str, default="127.0.0.1", help="The host to listen on.")
+    arg_parser.add_argument("-p", "--port", type=int, default=c.defaultPort, help="The port to listen on.")
+    arg_parser.add_argument("-ip", "--ip", type=str, default=c.defaultIP, help="The host to listen on.")
     arg_parser.add_argument("-o", "--output", type=str, default="output.txt", help="The output file name.")
 
     ip = arg_parser.parse_args().ip

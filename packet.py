@@ -1,3 +1,5 @@
+import constants as c
+
 class LongHeader:
     def __init__(self, flags, con_id, t):
         self.con_id = con_id
@@ -28,7 +30,7 @@ class ShortHeader:
 
     def decode(self, data):
         parts = data.split(":")
-        if len(parts) == 6:
+        if len(parts) == c.shortHeaderLen:
             self.flags, self.con_id, self.seq, self.data, self.filesize, self.packet_size = parts
         else:
             print("Invalid data format")
